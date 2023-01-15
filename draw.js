@@ -1,5 +1,4 @@
 function draw() {
-    var dotStr = "` + dotStr + `";
     var graph = vis.parseDOTNetwork(dotStr);
     var options = {
         manipulation: {
@@ -12,10 +11,10 @@ function draw() {
     var allEdges = graph.edges;
     var selectedNode;
     network.on("selectNode", function (params) {
-        if (params.nodes.length == 1) {
+        if (params.nodes.length === 1) {
             selectedNode = params.nodes[0];
             allEdges.forEach(function (edge) {
-                if (edge.from != selectedNode && edge.to != selectedNode) {
+                if (edge.from !== selectedNode && edge.to !== selectedNode) {
                     network.updateEdge(edge.id, {hidden: true});
                 } else {
                     network.updateEdge(edge.id, {hidden: false});
@@ -25,10 +24,10 @@ function draw() {
     });
 
     network.on("deselectNode", function (params) {
-        if (params.previousSelection.nodes.length == 1) {
+        if (params.previousSelection.nodes.length === 1) {
             var previousSelectedNode = params.previousSelection.nodes[0];
             allEdges.forEach(function (edge) {
-                if (edge.from == previousSelectedNode || edge.to == previousSelectedNode) {
+                if (edge.from === previousSelectedNode || edge.to === previousSelectedNode) {
                     network.updateEdge(edge.id, {hidden: false, label: ""});
                 }
             });
