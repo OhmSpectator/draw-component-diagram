@@ -1,30 +1,44 @@
-
-
 function draw() {
-    // parse dot file to extract nodes and edges
     let dot = vis.parseDOTNetwork(dotStr);
     let nodes = dot.nodes;
     let edges = dot.edges;
+    const defaultColor = {color: 'black', highlight: 'red', hover: 'black'};
 
-    // create a map to store unique edges
-    let uniqueEdges = new Map();
+    let allEdges = new Map();
+    nodes.forEach(function (node) {
+        let nodeEdgesArray = edges.filter(function (edge) {
+            if (edge.from === node.id || edge.to === node.id) {
+                return true
+            }
+        });
+        nodeEdgesArray = nodeEdgesArray.map(function (edge) {
+            edge.color = defaultColor;
+            return {edge: edge,
+                storedLabel: edge.label,
+                storedArrows: edge.arrows}
+        });
+        allEdges.set(node.id, nodeEdgesArray);
+    });
 
     function getUniqueEdgeId(from, to) {
         return from + "-" + to;
     }
 
-    // iterate through edges and add unique edges to the map
+    let uniqueEdges = new Map();
     edges.forEach(function (edge) {
         let edgeId = getUniqueEdgeId(edge.from, edge.to);
         let reverseEdgeId = getUniqueEdgeId(edge.to, edge.from);
-
         let hide = true;
         if (!uniqueEdges.has(edgeId)) {
             uniqueEdges.set(edgeId, edge);
+            edge.label = "";
+            edge.arrows = "";
             hide = false;
         }
         if (!uniqueEdges.has(reverseEdgeId)) {
             uniqueEdges.set(reverseEdgeId, edge);
+            edge.label = "";
+            edge.arrows = "";
             hide = false;
         }
         if (hide) {
@@ -32,17 +46,6 @@ function draw() {
         }
     });
 
-    // create a map to store original edges for each node
-    let nodeEdges = new Map();
-    nodes.forEach(function (node) {
-        let nodeId = node.id;
-        let nodeEdgesArray = edges.filter(function (edge) {
-            return edge.from === nodeId || edge.to === nodeId;
-        });
-        nodeEdges.set(nodeId, nodeEdgesArray);
-    });
-
-    // create a network visualization
     let container = document.getElementById("network");
     let data = {
         nodes: nodes,
@@ -51,11 +54,11 @@ function draw() {
     let options = {
         physics: {
             barnesHut: {
-                gravitationalConstant: -8000,
-                centralGravity: 0.3,
-                springLength: 95,
-                springConstant: 0.04,
-                avoidOverlap: 0
+                gravitationalConstant: -100,
+                centralGravity: 0.0,
+                springLength: 0,
+                springConstant: 0.0,
+                avoidOverlap: 1
             }
         },
         layout: {
@@ -65,23 +68,37 @@ function draw() {
 
     let network = new vis.Network(container, data, options);
 
-    // add event listener to handle node selection
-    network.on("selectNode", function (params) {
-        if (params.nodes.length > 0) {
-            let selectedNodeId = params.nodes[0];
-            let selectedNodeEdges = nodeEdges.get(selectedNodeId);
+    function showDetailedView(event) {
+        if (event.nodes.length > 0) {
+            let selectedNodeId = event.nodes[0];
+            let selectedNodeEdges = allEdges.get(selectedNodeId);
             selectedNodeEdges.forEach(function (edge) {
-                network.updateEdge(edge.id, {hidden: false});
+                network.updateEdge(edge.edge.id, {
+                    hidden: false,
+                    label: edge.storedLabel,
+                    arrows: edge.storedArrows,
+                });
             });
         }
-    });
-    network.on("deselectNode", function (params) {
-        edges.forEach(function (edge) {
-            let edgeId = getUniqueEdgeId(edge.from, edge.to);
-            let reverseEdgeId = getUniqueEdgeId(edge.to, edge.from);
-            if (uniqueEdges.get(edgeId) !== edge && uniqueEdges.get(reverseEdgeId) !== edge) {
-                network.updateEdge(edge.id, {hidden: true});
-            }
-        });
-    });
+    }
+
+    function showGeneralView(event) {
+        if (event.previousSelection.nodes.length > 0) {
+            let selectedNodeId = event.previousSelection.nodes[0];
+            let selectedNodeEdges = allEdges.get(selectedNodeId);
+            selectedNodeEdges.forEach(function (edge) {
+                let edgeId = getUniqueEdgeId(edge.edge.from, edge.edge.to);
+                let reverseEdgeId = getUniqueEdgeId(edge.edge.to, edge.edge.from);
+                if (uniqueEdges.get(edgeId) !== edge && uniqueEdges.get(reverseEdgeId) !== edge.edge) {
+                    network.updateEdge(edge.edge.id, {hidden: true});
+                } else {
+                    network.updateEdge(edge.edge.id, {label: "\n", arrows: "",});
+                }
+            });
+        }
+    }
+
+    network.on("selectNode", showDetailedView);
+    network.on("dragStart", showDetailedView);
+    network.on("deselectNode", showGeneralView);
 }
