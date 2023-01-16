@@ -73,10 +73,6 @@ function draw() {
             selectedNodeEdges.forEach(function (edge) {
                 network.updateEdge(edge.id, {hidden: false});
             });
-        } else {
-            edges.forEach(function (edge) {
-                network.updateEdge(edge.id, {hidden: true});
-            });
         }
     });
     network.on("deselectNode", function (params) {
